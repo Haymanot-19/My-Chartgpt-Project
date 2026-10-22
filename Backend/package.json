@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "npx kill-port 3888 && nodemon index.js",
+    "dev": "nodemon index.js",
     "start": "node index.js"
   },
   "dependencies": {

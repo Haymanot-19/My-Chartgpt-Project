@@ -12,18 +12,8 @@ app.use("/api", mainRouter);
 
 app.use(errorHandler);
 
-async function startServer() {
-  try {
-    app.listen(3888, (err) => {
-      if (err) {
-        throw err;
-      }
+const PORT = process.env.PORT || 3888;
 
-      console.log("Server is running on port http://localhost:3888");
-    });
-  } catch (error) {
-    console.error("Error starting the server:", error.message);
-  }
-}
-
-startServer();
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
