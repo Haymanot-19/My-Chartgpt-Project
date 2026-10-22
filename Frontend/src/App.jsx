@@ -6,7 +6,7 @@ import MessageList from "./components/MessageList/MessageList";
 import ChatInput from "./components/ChatInput/ChatInput";
 import "./App.css";
 
-const API_BASE_URL = "http://localhost:3000/api";
+const API_BASE_URL = "http://localhost:3888/api";
 
 function App() {
   const [conversations, setConversations] = useState([]);
@@ -18,32 +18,38 @@ function App() {
   };
 
   useEffect(() => {
-    fetchConversations();
+    let isMounted = true;
+
+    axios
+      .get(`${API_BASE_URL}/chat/conversations`)
+      .then((response) => {
+        if (isMounted && response.data.success) {
+          setConversations(response.data.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching conversations:", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
     scrollToBottom();
   }, [conversations, isLoading]);
 
-  const fetchConversations = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/chat/conversations`);
-      //Axios wraps the backend response inside its own response object.
-      if (response.data.status === "success") {
-        setConversations(response.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching conversations:", error);
-    }
-  };
-
   const handleSendMessage = async (question) => {
-    // Optimistically add user message
+    // Prevent duplicate requests while loading
+    if (isLoading) return;
+
     const tempUserMessage = {
       id: Date.now(),
       role: "user",
       content: question,
     };
+
     setConversations((prev) => [...prev, tempUserMessage]);
     setIsLoading(true);
 
@@ -51,10 +57,11 @@ function App() {
       const response = await axios.post(`${API_BASE_URL}/chat/conversations`, {
         question,
       });
-      if (response.data.status === "success") {
-        // Axios wraps the backend response inside its own response object.
+
+      // Matches backend key response: response.data.success
+      if (response.data.success) {
         const { userConversation, assistantConversation } = response.data.data;
-        // Replace temp message with real ones
+
         setConversations((prev) => {
           const filtered = prev.filter((msg) => msg.id !== tempUserMessage.id);
           return [...filtered, userConversation, assistantConversation];
@@ -63,12 +70,10 @@ function App() {
     } catch (error) {
       console.error("Error posting conversation:", error);
 
-      // Extract error message from backend response or use a realistic fallback
       const errorMessage =
         error.response?.data?.message ||
         "There was an error generating a response.";
 
-      // Add error message to chat
       const errorConversation = {
         id: Date.now() + 1,
         role: "assistant",
